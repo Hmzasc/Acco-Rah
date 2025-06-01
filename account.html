@@ -1,0 +1,420 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>حساب الرحمة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Amiri', serif;
+      background: linear-gradient(to bottom, #f5f7fa, #e0e7f0);
+      margin: 0;
+      padding: 0;
+      color: #2c3e50;
+      line-height: 1.8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 700px;
+      margin: 30px auto;
+      background-color: #ffffff;
+      padding: 40px;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 0 15px rgba(26, 82, 118, 0.05);
+      border: 1px solid #e0e0e0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(22, 160, 133, 0.1) 0%, transparent 70%);
+      z-index: -1;
+      animation: pulse 10s infinite alternate;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.5); opacity: 0.5; }
+      100% { transform: scale(1.2); opacity: 0; }
+    }
+    h1 {
+      color: #1a5276;
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      font-family: 'Cairo', sans-serif;
+      position: relative;
+      z-index: 2;
+    }
+    .deceased-info {
+      font-size: 1.3em;
+      color: #34495e;
+      margin-bottom: 30px;
+      padding: 15px;
+      background-color: #e8f6f3;
+      border-radius: 10px;
+      border-left: 5px solid #16a085;
+      position: relative;
+      z-index: 2;
+    }
+    .clock-section {
+      margin: 20px 0;
+      padding: 15px;
+      background-color: #f9fbfd;
+      border-radius: 10px;
+      border: 1px solid #a3bffa;
+      font-family: 'Cairo', sans-serif;
+      font-size: 1.1em;
+      color: #2c3e50;
+    }
+    .clock {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #16a085;
+    }
+    .time-since {
+      margin-top: 10px;
+      font-size: 1em;
+      color: #7f8c8d;
+    }
+    button {
+      padding: 12px 35px;
+      font-size: 1.1em;
+      background: linear-gradient(135deg, #16a085, #138d75);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+      transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+      display: block;
+      margin: 15px auto;
+      position: relative;
+      z-index: 2;
+    }
+    button:hover {
+      background: linear-gradient(135deg, #138d75, #117864);
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(22, 160, 133, 0.3);
+    }
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(22, 160, 133, 0.2);
+    }
+    .share-link {
+      margin: 20px 0;
+      padding: 10px;
+      background-color: #f9fbfd;
+      border-radius: 10px;
+      border: 1px solid #a3bffa;
+    }
+    .share-link input {
+      width: 70%;
+      padding: 8px;
+      font-size: 1em;
+      border: 1px solid #a3bffa;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .share-link button {
+      padding: 8px 20px;
+      font-size: 1em;
+      margin-left: 10px;
+    }
+    .navigation-buttons {
+      margin-top: 20px;
+    }
+    .navigation-buttons button {
+      background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+    }
+    .navigation-buttons button:hover {
+      background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+      box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+    }
+    @media (max-width: 768px) {
+      .container {
+        margin: 15px;
+        padding: 25px;
+      }
+      h1 {
+        font-size: 2em;
+      }
+      .deceased-info {
+        font-size: 1.2em;
+      }
+      .clock-section {
+        font-size: 1em;
+      }
+      .clock {
+        font-size: 1.3em;
+      }
+      button {
+        font-size: 1em;
+        padding: 10px 30px;
+      }
+      .share-link input {
+        width: 60%;
+      }
+    }
+    @media (max-width: 480px) {
+      .container {
+        margin: 10px;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+      .deceased-info {
+        font-size: 1.1em;
+      }
+      .clock-section {
+        font-size: 0.9em;
+      }
+      .clock {
+        font-size: 1.1em;
+      }
+      button {
+        font-size: 0.9em;
+        padding: 8px 25px;
+      }
+      .share-link input {
+        width: 50%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>حساب الرحمة</h1>
+    <div class="deceased-info" id="deceasedInfo"></div>
+    <div class="clock-section">
+      <div class="clock" id="currentTime"></div>
+      <div class="time-since" id="timeSince"></div>
+    </div>
+    <button onclick="goToKhotma()">الخاتمة</button>
+    <button onclick="goToDua()">الدعاء</button>
+    <div class="share-link">
+      <input type="text" id="shareLink" readonly>
+      <button onclick="copyLink()">نسخ الرابط</button>
+    </div>
+    <div class="navigation-buttons">
+      <button onclick="createNewAccount()">إنشاء حساب جديد</button>
+    </div>
+  </div>
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-analytics.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDJP1v5cP7I267OOI478DEKqhAIi0xY1Is",
+      authDomain: "scorpion-cb13f.firebaseapp.com",
+      projectId: "scorpion-cb13f",
+      storageBucket: "scorpion-cb13f.firebasestorage.app",
+      messagingSenderId: "451389310486",
+      appId: "1:451389310486:web:70e13d7b7f92c2890d1737",
+      measurementId: "G-522L6NVLKW"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getFirestore(app);
+
+    // تعريف الأيام والشهور باللغة العربية
+    const daysOfWeek = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    const monthsOfYear = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+
+    // إعداد الساعة الحالية بتوقيت غرينتش وحساب المدة
+    function updateClock() {
+      const now = new Date();
+      const dayOfWeek = daysOfWeek[now.getUTCDay()];
+      const day = now.getUTCDate();
+      const month = monthsOfYear[now.getUTCMonth()];
+      const year = now.getUTCFullYear();
+      const hours = String(now.getUTCHours()).padStart(2, "0");
+      const minutes = String(now.getUTCMinutes()).padStart(2, "0");
+      const seconds = String(now.getUTCSeconds()).padStart(2, "0");
+
+      const currentTimeElement = document.getElementById("currentTime");
+      if (currentTimeElement) {
+        currentTimeElement.textContent = `التاريخ الحالي: ${dayOfWeek}، ${day} ${month} ${year} - الوقت (GMT): ${hours}:${minutes}:${seconds}`;
+      }
+
+      const accountId = localStorage.getItem("currentAccountId");
+      if (!accountId) {
+        const deceasedInfoElement = document.getElementById("deceasedInfo");
+        if (deceasedInfoElement) {
+          deceasedInfoElement.textContent = "لا يوجد حساب محمل. يرجى إنشاء حساب جديد.";
+        }
+        return;
+      }
+
+      getDoc(doc(db, "accounts", accountId)).then((docSnap) => {
+        const deceasedInfoElement = document.getElementById("deceasedInfo");
+        const timeSinceElement = document.getElementById("timeSince");
+        if (!deceasedInfoElement || !timeSinceElement) return;
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const name = data.name;
+          const deathDate = data.deathDate;
+          deceasedInfoElement.textContent = `اللهم ارحم ${name} رحمة واسعة`;
+
+          if (deathDate) {
+            const death = new Date(deathDate);
+            const diffMs = now - death;
+
+            const years = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365));
+            const remainingAfterYears = diffMs % (1000 * 60 * 60 * 24 * 365);
+            const months = Math.floor(remainingAfterYears / (1000 * 60 * 60 * 24 * 30));
+            const remainingAfterMonths = remainingAfterYears % (1000 * 60 * 60 * 24 * 30);
+            const days = Math.floor(remainingAfterMonths / (1000 * 60 * 60 * 24));
+
+            let durationText = "مضى منذ الوفاة: ";
+            if (years > 0) {
+              if (years === 1) durationText += "سنة";
+              else if (years === 2) durationText += "سنتين";
+              else if (years >= 3 && years <= 10) durationText += `${years} سنوات`;
+              else durationText += `${years} سنة`;
+            } else if (months > 0) {
+              if (months === 1) durationText += "شهر";
+              else if (months === 2) durationText += "شهرين";
+              else if (months >= 3 && months <= 10) durationText += `${months} أشهر`;
+              else durationText += `${months} شهر`;
+            } else if (days > 0) {
+              if (days === 1) durationText += "يوم";
+              else if (days === 2) durationText += "يومين";
+              else if (days >= 3 && days <= 10) durationText += `${days} أيام`;
+              else durationText += `${days} يوم`;
+            } else {
+              durationText += "أقل من يوم";
+            }
+
+            timeSinceElement.textContent = durationText;
+          } else {
+            timeSinceElement.textContent = "لم يتم إدخال تاريخ الوفاة.";
+          }
+        } else {
+          deceasedInfoElement.textContent = "لا يوجد حساب محمل.";
+        }
+      }).catch((error) => {
+        console.error("Error fetching account data:", error);
+      });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // رابط المشاركة
+    const shareLinkElement = document.getElementById("shareLink");
+    if (shareLinkElement) {
+      const accountId = localStorage.getItem("currentAccountId");
+      if (accountId) {
+        const currentUrl = `${window.location.origin}/account.html?accountId=${accountId}`;
+        shareLinkElement.value = currentUrl;
+      } else {
+        shareLinkElement.value = "لا يوجد حساب للمشاركة.";
+      }
+    }
+
+    function copyLink() {
+      const shareLinkElement = document.getElementById("shareLink");
+      if (shareLinkElement && shareLinkElement.value) {
+        navigator.clipboard.writeText(shareLinkElement.value).then(() => {
+          alert("تم نسخ الرابط بنجاح!");
+        }).catch((error) => {
+          console.error("Error copying link:", error);
+          alert("حدث خطأ أثناء نسخ الرابط.");
+        });
+      }
+    }
+
+    function goToKhotma() {
+      const accountId = localStorage.getItem("currentAccountId");
+      if (accountId) {
+        window.location.href = `khotma.html?accountId=${accountId}`;
+      } else {
+        alert("يرجى إنشاء حساب أولاً!");
+      }
+    }
+
+    function goToDua() {
+      const accountId = localStorage.getItem("currentAccountId");
+      if (accountId) {
+        window.location.href = `dua.html?accountId=${accountId}`;
+      } else {
+        alert("يرجى إنشاء حساب أولاً!");
+      }
+    }
+
+    async function createNewAccount() {
+      const name = prompt("أدخل اسم المتوفى:");
+      const deathDate = prompt("أدخل تاريخ الوفاة (YYYY-MM-DD):");
+      if (name && deathDate) {
+        const accountId = Date.now().toString();
+        try {
+          await setDoc(doc(db, "accounts", accountId), {
+            name: name,
+            deathDate: deathDate
+          });
+          localStorage.setItem("currentAccountId", accountId);
+          window.location.reload();
+        } catch (error) {
+          console.error("Error creating account:", error);
+          alert("حدث خطأ أثناء إنشاء الحساب.");
+        }
+      } else {
+        alert("يرجى إدخال جميع البيانات!");
+      }
+    }
+  </script>
+</body>
+</html>
