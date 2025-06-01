@@ -1,48 +1,9 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إنشاء حساب جديد</title>
+  <title>موقع الرحمة</title>
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -58,7 +19,7 @@
       min-height: 100vh;
     }
     .container {
-      max-width: 500px;
+      max-width: 600px;
       margin: 30px auto;
       background-color: #ffffff;
       padding: 40px;
@@ -92,33 +53,40 @@
       position: relative;
       z-index: 2;
     }
-    .form-group {
-      margin-bottom: 20px;
+    p {
+      font-size: 1.2em;
+      color: #34495e;
+      margin-bottom: 30px;
       position: relative;
       z-index: 2;
     }
-    label {
-      display: block;
-      font-size: 1.2em;
-      color: #34495e;
-      margin-bottom: 8px;
-      font-family: 'Cairo', sans-serif;
+    .input-group {
+      margin-bottom: 20px;
     }
     input[type="text"],
     input[type="date"] {
       width: 80%;
-      padding: 12px;
-      font-size: 1em;
+      max-width: 400px;
+      padding: 12px 15px;
+      font-size: 1.1em;
+      border-radius: 12px;
       border: 1px solid #a3bffa;
-      border-radius: 8px;
+      margin: 10px auto;
+      display: block;
       font-family: 'Amiri', serif;
+      background-color: #f9fbfd;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
       text-align: center;
-      transition: border-color 0.3s ease;
+      position: relative;
+      z-index: 2;
     }
     input[type="text"]:focus,
     input[type="date"]:focus {
       border-color: #16a085;
+      box-shadow: 0 0 8px rgba(22, 160, 133, 0.3);
       outline: none;
+      background-color: #fff;
     }
     button {
       padding: 12px 35px;
@@ -130,6 +98,8 @@
       cursor: pointer;
       font-family: 'Cairo', sans-serif;
       transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+      display: block;
+      margin: 20px auto;
       position: relative;
       z-index: 2;
     }
@@ -142,6 +112,11 @@
       transform: translateY(0);
       box-shadow: 0 2px 6px rgba(22, 160, 133, 0.2);
     }
+    .note {
+      font-size: 0.9em;
+      color: #7f8c8d;
+      margin-top: 10px;
+    }
     @media (max-width: 768px) {
       .container {
         margin: 15px;
@@ -150,9 +125,14 @@
       h1 {
         font-size: 2em;
       }
+      p {
+        font-size: 1.1em;
+      }
       input[type="text"],
       input[type="date"] {
         width: 90%;
+        max-width: 350px;
+        padding: 10px 12px;
       }
       button {
         font-size: 1em;
@@ -167,9 +147,14 @@
       h1 {
         font-size: 1.8em;
       }
+      p {
+        font-size: 1em;
+      }
       input[type="text"],
       input[type="date"] {
-        width: 100%;
+        width: 95%;
+        max-width: 300px;
+        padding: 8px 10px;
       }
       button {
         font-size: 0.9em;
@@ -180,74 +165,35 @@
 </head>
 <body>
   <div class="container">
-    <h1>إنشاء حساب جديد</h1>
-    <div class="form-group">
-      <label for="deceasedName">اسم المتوفى</label>
-      <input type="text" id="deceasedName" placeholder="أدخل اسم المتوفى" required>
+    <h1>موقع الرحمة</h1>
+    <p>أهلاً بك، يرجى إدخال معلومات المتوفى لتبدأ الترحم والختمة</p>
+    <div class="input-group">
+      <input type="text" id="deceasedName" placeholder="أدخل اسم المتوفى الكامل" required>
+      <input type="date" id="deathDate" placeholder="تاريخ الوفاة (اختياري)">
+      <p class="note">إذا لم تعرف تاريخ الوفاة، يمكنك ترك الحقل فارغًا.</p>
+      <button onclick="submitForm()">بدء الترحم والختمة</button>
     </div>
-    <div class="form-group">
-      <label for="deathDate">تاريخ الوفاة</label>
-      <input type="date" id="deathDate" required>
-    </div>
-    <button onclick="createAccount()">إنشاء الحساب</button>
   </div>
-
-  <script type="module">
-    // Import the functions you need from the SDKs you need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-analytics.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
-
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyDJP1v5cP7I267OOI478DEKqhAIi0xY1Is",
-      authDomain: "scorpion-cb13f.firebaseapp.com",
-      projectId: "scorpion-cb13f",
-      storageBucket: "scorpion-cb13f.firebasestorage.app",
-      messagingSenderId: "451389310486",
-      appId: "1:451389310486:web:70e13d7b7f92c2890d1737",
-      measurementId: "G-522L6NVLKW"
-    };
-
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const db = getFirestore(app);
-
-    // Define the createAccount function and attach it to the global scope
-    async function createAccount() {
-      const deceasedNameElement = document.getElementById("deceasedName");
-      const deathDateElement = document.getElementById("deathDate");
-
-      if (!deceasedNameElement || !deathDateElement) {
-        alert("يرجى التأكد من وجود جميع الحقول!");
+  <script>
+    function submitForm() {
+      const name = document.getElementById("deceasedName").value.trim();
+      const deathDate = document.getElementById("deathDate").value;
+      if (!name) {
+        alert("يرجى إدخال اسم المتوفى الكامل");
         return;
       }
 
-      const deceasedName = deceasedNameElement.value.trim();
-      const deathDate = deathDateElement.value;
+      // توليد معرف عشوائي للحساب
+      const accountId = Math.random().toString(36).substr(2, 9);
 
-      if (!deceasedName || !deathDate) {
-        alert("يرجى إدخال جميع البيانات!");
-        return;
-      }
-
-      const accountId = Date.now().toString(); // استخدام الطابع الزمني كـ ID
-      try {
-        await setDoc(doc(db, "accounts", accountId), {
-          name: deceasedName,
-          deathDate: deathDate
-        });
-        localStorage.setItem("currentAccountId", accountId);
-        window.location.href = `account.html`;
-      } catch (error) {
-        console.error("Error creating account:", error);
-        alert("حدث خطأ أثناء إنشاء الحساب.");
-      }
+      // الانتقال إلى صفحة الحساب مع تمرير البيانات
+      const params = new URLSearchParams({
+        id: accountId,
+        name: encodeURIComponent(name),
+        deathDate: deathDate || ""
+      });
+      window.location.href = `account.html?${params.toString()}`;
     }
-
-    // Attach the function to the global window object to make it accessible to onclick
-    window.createAccount = createAccount;
   </script>
 </body>
 </html>
