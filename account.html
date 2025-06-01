@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
@@ -247,35 +208,28 @@
       <button onclick="createNewAccount()">إنشاء حساب جديد</button>
     </div>
   </div>
-  <script type="module">
-    // Import the functions you need from the SDKs you need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-analytics.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+  <script>
+    // الحصول على بيانات المتوفى من URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const accountId = urlParams.get("id");
+    const name = decodeURIComponent(urlParams.get("name") || "المتوفى");
+    const deathDate = urlParams.get("deathDate") || null;
 
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyDJP1v5cP7I267OOI478DEKqhAIi0xY1Is",
-      authDomain: "scorpion-cb13f.firebaseapp.com",
-      projectId: "scorpion-cb13f",
-      storageBucket: "scorpion-cb13f.firebasestorage.app",
-      messagingSenderId: "451389310486",
-      appId: "1:451389310486:web:70e13d7b7f92c2890d1737",
-      measurementId: "G-522L6NVLKW"
-    };
+    if (!accountId || !name) {
+      alert("بيانات الحساب غير مكتملة!");
+      window.location.href = "index.html";
+    }
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const db = getFirestore(app);
+    // عرض اسم المتوفى مع الدعاء
+    document.getElementById("deceasedInfo").textContent = `اللهم ارحم ${name} رحمة واسعة`;
 
-    // تعريف الأيام والشهور باللغة العربية
+    // تعريف الأيام باللغة العربية
     const daysOfWeek = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
     const monthsOfYear = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
 
     // إعداد الساعة الحالية بتوقيت غرينتش وحساب المدة
     function updateClock() {
-      const now = new Date();
+      const now = new Date(); // التاريخ الحالي يتم تحديثه تلقائيًا
       const dayOfWeek = daysOfWeek[now.getUTCDay()];
       const day = now.getUTCDate();
       const month = monthsOfYear[now.getUTCMonth()];
@@ -284,136 +238,82 @@
       const minutes = String(now.getUTCMinutes()).padStart(2, "0");
       const seconds = String(now.getUTCSeconds()).padStart(2, "0");
 
-      const currentTimeElement = document.getElementById("currentTime");
-      if (currentTimeElement) {
-        currentTimeElement.textContent = `التاريخ الحالي: ${dayOfWeek}، ${day} ${month} ${year} - الوقت (GMT): ${hours}:${minutes}:${seconds}`;
-      }
+      // عرض التاريخ والوقت
+      document.getElementById("currentTime").textContent = `التاريخ الحالي: ${dayOfWeek}، ${day} ${month} ${year} - الوقت (GMT): ${hours}:${minutes}:${seconds}`;
+      
+      if (deathDate) {
+        const death = new Date(deathDate);
+        const diffMs = now - death;
 
-      const accountId = localStorage.getItem("currentAccountId");
-      if (!accountId) {
-        const deceasedInfoElement = document.getElementById("deceasedInfo");
-        if (deceasedInfoElement) {
-          deceasedInfoElement.textContent = "لا يوجد حساب محمل. يرجى إنشاء حساب جديد.";
-        }
-        return;
-      }
+        // حساب السنوات
+        const years = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365));
+        const remainingAfterYears = diffMs % (1000 * 60 * 60 * 24 * 365);
 
-      getDoc(doc(db, "accounts", accountId)).then((docSnap) => {
-        const deceasedInfoElement = document.getElementById("deceasedInfo");
-        const timeSinceElement = document.getElementById("timeSince");
-        if (!deceasedInfoElement || !timeSinceElement) return;
+        // حساب الأشهر
+        const months = Math.floor(remainingAfterYears / (1000 * 60 * 60 * 24 * 30));
+        const remainingAfterMonths = remainingAfterYears % (1000 * 60 * 60 * 24 * 30);
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const name = data.name;
-          const deathDate = data.deathDate;
-          deceasedInfoElement.textContent = `اللهم ارحم ${name} رحمة واسعة`;
+        // حساب الأيام
+        const days = Math.floor(remainingAfterMonths / (1000 * 60 * 60 * 24));
 
-          if (deathDate) {
-            const death = new Date(deathDate);
-            const diffMs = now - death;
-
-            const years = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365));
-            const remainingAfterYears = diffMs % (1000 * 60 * 60 * 24 * 365);
-            const months = Math.floor(remainingAfterYears / (1000 * 60 * 60 * 24 * 30));
-            const remainingAfterMonths = remainingAfterYears % (1000 * 60 * 60 * 24 * 30);
-            const days = Math.floor(remainingAfterMonths / (1000 * 60 * 60 * 24));
-
-            let durationText = "مضى منذ الوفاة: ";
-            if (years > 0) {
-              if (years === 1) durationText += "سنة";
-              else if (years === 2) durationText += "سنتين";
-              else if (years >= 3 && years <= 10) durationText += `${years} سنوات`;
-              else durationText += `${years} سنة`;
-            } else if (months > 0) {
-              if (months === 1) durationText += "شهر";
-              else if (months === 2) durationText += "شهرين";
-              else if (months >= 3 && months <= 10) durationText += `${months} أشهر`;
-              else durationText += `${months} شهر`;
-            } else if (days > 0) {
-              if (days === 1) durationText += "يوم";
-              else if (days === 2) durationText += "يومين";
-              else if (days >= 3 && days <= 10) durationText += `${days} أيام`;
-              else durationText += `${days} يوم`;
-            } else {
-              durationText += "أقل من يوم";
-            }
-
-            timeSinceElement.textContent = durationText;
-          } else {
-            timeSinceElement.textContent = "لم يتم إدخال تاريخ الوفاة.";
-          }
+        let durationText = "مضى منذ الوفاة: ";
+        if (years > 0) {
+          if (years === 1) durationText += "سنة";
+          else if (years === 2) durationText += "سنتين";
+          else if (years >= 3 && years <= 10) durationText += `${years} سنوات`;
+          else durationText += `${years} سنة`;
+        } else if (months > 0) {
+          if (months === 1) durationText += "شهر";
+          else if (months === 2) durationText += "شهرين";
+          else if (months >= 3 && months <= 10) durationText += `${months} أشهر`;
+          else durationText += `${months} شهر`;
+        } else if (days > 0) {
+          if (days === 1) durationText += "يوم";
+          else if (days === 2) durationText += "يومين";
+          else if (days >= 3 && days <= 10) durationText += `${days} أيام`;
+          else durationText += `${days} يوم`;
         } else {
-          deceasedInfoElement.textContent = "لا يوجد حساب محمل.";
+          durationText += "أقل من يوم";
         }
-      }).catch((error) => {
-        console.error("Error fetching account data:", error);
-      });
+
+        document.getElementById("timeSince").textContent = durationText;
+      } else {
+        document.getElementById("timeSince").textContent = "لم يتم إدخال تاريخ الوفاة.";
+      }
     }
     setInterval(updateClock, 1000);
     updateClock();
 
     // رابط المشاركة
-    const shareLinkElement = document.getElementById("shareLink");
-    if (shareLinkElement) {
-      const accountId = localStorage.getItem("currentAccountId");
-      if (accountId) {
-        const currentUrl = `${window.location.origin}/account.html?accountId=${accountId}`;
-        shareLinkElement.value = currentUrl;
-      } else {
-        shareLinkElement.value = "لا يوجد حساب للمشاركة.";
-      }
-    }
+    const currentUrl = window.location.href;
+    document.getElementById("shareLink").value = currentUrl;
 
     function copyLink() {
-      const shareLinkElement = document.getElementById("shareLink");
-      if (shareLinkElement && shareLinkElement.value) {
-        navigator.clipboard.writeText(shareLinkElement.value).then(() => {
-          alert("تم نسخ الرابط بنجاح!");
-        }).catch((error) => {
-          console.error("Error copying link:", error);
-          alert("حدث خطأ أثناء نسخ الرابط.");
-        });
-      }
+      navigator.clipboard.writeText(currentUrl).then(() => {
+        alert("تم نسخ الرابط بنجاح!");
+      });
     }
 
     function goToKhotma() {
-      const accountId = localStorage.getItem("currentAccountId");
-      if (accountId) {
-        window.location.href = `khotma.html?accountId=${accountId}`;
-      } else {
-        alert("يرجى إنشاء حساب أولاً!");
-      }
+      const params = new URLSearchParams({
+        id: accountId,
+        name: encodeURIComponent(name),
+        deathDate: deathDate || ""
+      });
+      window.location.href = `khotma.html?${params.toString()}`;
     }
 
     function goToDua() {
-      const accountId = localStorage.getItem("currentAccountId");
-      if (accountId) {
-        window.location.href = `dua.html?accountId=${accountId}`;
-      } else {
-        alert("يرجى إنشاء حساب أولاً!");
-      }
+      const params = new URLSearchParams({
+        id: accountId,
+        name: encodeURIComponent(name),
+        deathDate: deathDate || ""
+      });
+      window.location.href = `dua.html?${params.toString()}`;
     }
 
-    async function createNewAccount() {
-      const name = prompt("أدخل اسم المتوفى:");
-      const deathDate = prompt("أدخل تاريخ الوفاة (YYYY-MM-DD):");
-      if (name && deathDate) {
-        const accountId = Date.now().toString();
-        try {
-          await setDoc(doc(db, "accounts", accountId), {
-            name: name,
-            deathDate: deathDate
-          });
-          localStorage.setItem("currentAccountId", accountId);
-          window.location.reload();
-        } catch (error) {
-          console.error("Error creating account:", error);
-          alert("حدث خطأ أثناء إنشاء الحساب.");
-        }
-      } else {
-        alert("يرجى إدخال جميع البيانات!");
-      }
+    function createNewAccount() {
+      window.location.href = "index.html";
     }
   </script>
 </body>
