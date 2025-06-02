@@ -64,26 +64,6 @@
       position: relative;
       z-index: 2;
     }
-    .clock-section {
-      margin: 20px 0;
-      padding: 15px;
-      background-color: #f9fbfd;
-      border-radius: 10px;
-      border: 1px solid #a3bffa;
-      font-family: 'Cairo', sans-serif;
-      font-size: 1.1em;
-      color: #2c3e50;
-    }
-    .clock {
-      font-size: 1.5em;
-      font-weight: bold;
-      color: #16a085;
-    }
-    .time-since {
-      margin-top: 10px;
-      font-size: 1em;
-      color: #7f8c8d;
-    }
     button {
       padding: 12px 35px;
       font-size: 1.1em;
@@ -128,9 +108,6 @@
       font-size: 1em;
       margin-left: 10px;
     }
-    .navigation-buttons {
-      margin-top: 20px;
-    }
     .navigation-buttons button {
       background: linear-gradient(135deg, #7f8c8d, #95a5a6);
     }
@@ -148,12 +125,6 @@
       }
       .deceased-info {
         font-size: 1.2em;
-      }
-      .clock-section {
-        font-size: 1em;
-      }
-      .clock {
-        font-size: 1.3em;
       }
       button {
         font-size: 1em;
@@ -174,12 +145,6 @@
       .deceased-info {
         font-size: 1.1em;
       }
-      .clock-section {
-        font-size: 0.9em;
-      }
-      .clock {
-        font-size: 1.1em;
-      }
       button {
         font-size: 0.9em;
         padding: 8px 25px;
@@ -194,10 +159,6 @@
   <div class="container">
     <h1>حساب الرحمة</h1>
     <div class="deceased-info" id="deceasedInfo"></div>
-    <div class="clock-section">
-      <div class="clock" id="currentTime"></div>
-      <div class="time-since" id="timeSince"></div>
-    </div>
     <button onclick="goToKhotma()">الخاتمة</button>
     <button onclick="goToDua()">الدعاء</button>
     <div class="share-link">
@@ -208,112 +169,55 @@
       <button onclick="createNewAccount()">إنشاء حساب جديد</button>
     </div>
   </div>
+
   <script>
-    // الحصول على بيانات المتوفى من URL
+    // قراءة بيانات الحساب من الرابط
     const urlParams = new URLSearchParams(window.location.search);
-    const accountId = urlParams.get("id");
-    const name = decodeURIComponent(urlParams.get("name") || "المتوفى");
-    const deathDate = urlParams.get("deathDate") || null;
+    const accountId = urlParams.get("accountId");
+    const deathDate = urlParams.get("deathDate");
 
-    if (!accountId || !name) {
-      alert("بيانات الحساب غير مكتملة!");
-      window.location.href = "index.html";
+    // عرض معلومات المتوفى
+    const deceasedInfoElement = document.getElementById("deceasedInfo");
+    if (deceasedInfoElement) {
+      const name = urlParams.get("deceasedName") || "المتوفى";
+      deceasedInfoElement.textContent = `اللهم ارحم ${name} رحمة واسعة${deathDate ? ` (توفي: ${deathDate})` : ""}`;
     }
 
-    // عرض اسم المتوفى مع الدعاء
-    document.getElementById("deceasedInfo").textContent = `اللهم ارحم ${name} رحمة واسعة`;
-
-    // تعريف الأيام باللغة العربية
-    const daysOfWeek = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-    const monthsOfYear = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
-
-    // إعداد الساعة الحالية بتوقيت غرينتش وحساب المدة
-    function updateClock() {
-      const now = new Date(); // التاريخ الحالي يتم تحديثه تلقائيًا
-      const dayOfWeek = daysOfWeek[now.getUTCDay()];
-      const day = now.getUTCDate();
-      const month = monthsOfYear[now.getUTCMonth()];
-      const year = now.getUTCFullYear();
-      const hours = String(now.getUTCHours()).padStart(2, "0");
-      const minutes = String(now.getUTCMinutes()).padStart(2, "0");
-      const seconds = String(now.getUTCSeconds()).padStart(2, "0");
-
-      // عرض التاريخ والوقت
-      document.getElementById("currentTime").textContent = `التاريخ الحالي: ${dayOfWeek}، ${day} ${month} ${year} - الوقت (GMT): ${hours}:${minutes}:${seconds}`;
-      
-      if (deathDate) {
-        const death = new Date(deathDate);
-        const diffMs = now - death;
-
-        // حساب السنوات
-        const years = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365));
-        const remainingAfterYears = diffMs % (1000 * 60 * 60 * 24 * 365);
-
-        // حساب الأشهر
-        const months = Math.floor(remainingAfterYears / (1000 * 60 * 60 * 24 * 30));
-        const remainingAfterMonths = remainingAfterYears % (1000 * 60 * 60 * 24 * 30);
-
-        // حساب الأيام
-        const days = Math.floor(remainingAfterMonths / (1000 * 60 * 60 * 24));
-
-        let durationText = "مضى منذ الوفاة: ";
-        if (years > 0) {
-          if (years === 1) durationText += "سنة";
-          else if (years === 2) durationText += "سنتين";
-          else if (years >= 3 && years <= 10) durationText += `${years} سنوات`;
-          else durationText += `${years} سنة`;
-        } else if (months > 0) {
-          if (months === 1) durationText += "شهر";
-          else if (months === 2) durationText += "شهرين";
-          else if (months >= 3 && months <= 10) durationText += `${months} أشهر`;
-          else durationText += `${months} شهر`;
-        } else if (days > 0) {
-          if (days === 1) durationText += "يوم";
-          else if (days === 2) durationText += "يومين";
-          else if (days >= 3 && days <= 10) durationText += `${days} أيام`;
-          else durationText += `${days} يوم`;
-        } else {
-          durationText += "أقل من يوم";
-        }
-
-        document.getElementById("timeSince").textContent = durationText;
-      } else {
-        document.getElementById("timeSince").textContent = "لم يتم إدخال تاريخ الوفاة.";
-      }
+    // إعداد رابط المشاركة
+    const shareLinkElement = document.getElementById("shareLink");
+    if (shareLinkElement && accountId) {
+      shareLinkElement.value = `${window.location.origin}${window.location.pathname}?accountId=${accountId}${deathDate ? `&deathDate=${deathDate}` : ""}`;
     }
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    // رابط المشاركة
-    const currentUrl = window.location.href;
-    document.getElementById("shareLink").value = currentUrl;
 
     function copyLink() {
-      navigator.clipboard.writeText(currentUrl).then(() => {
-        alert("تم نسخ الرابط بنجاح!");
-      });
+      const shareLinkElement = document.getElementById("shareLink");
+      if (shareLinkElement && shareLinkElement.value) {
+        navigator.clipboard.writeText(shareLinkElement.value).then(() => {
+          alert("تم نسخ الرابط بنجاح!");
+        }).catch(() => {
+          alert("حدث خطأ أثناء نسخ الرابط.");
+        });
+      }
     }
 
     function goToKhotma() {
-      const params = new URLSearchParams({
-        id: accountId,
-        name: encodeURIComponent(name),
-        deathDate: deathDate || ""
-      });
-      window.location.href = `khotma.html?${params.toString()}`;
+      if (accountId) {
+        window.location.href = `khotma.html?accountId=${accountId}${deathDate ? `&deathDate=${deathDate}` : ""}`;
+      } else {
+        alert("يرجى إنشاء حساب أولاً!");
+      }
     }
 
     function goToDua() {
-      const params = new URLSearchParams({
-        id: accountId,
-        name: encodeURIComponent(name),
-        deathDate: deathDate || ""
-      });
-      window.location.href = `dua.html?${params.toString()}`;
+      if (accountId) {
+        window.location.href = `dua.html?accountId=${accountId}${deathDate ? `&deathDate=${deathDate}` : ""}`;
+      } else {
+        alert("يرجى إنشاء حساب أولاً!");
+      }
     }
 
     function createNewAccount() {
-      window.location.href = "index.html";
+      window.location.href = "index (1) (1).html";
     }
   </script>
 </body>
