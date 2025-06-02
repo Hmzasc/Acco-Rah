@@ -282,14 +282,13 @@
     let currentPage = 0;
     const versesPerPage = 12;
 
-    // قراءة بيانات من الرابط
     const urlParams = new URLSearchParams(window.location.search);
     const accountId = urlParams.get("accountId");
     const deathDate = urlParams.get("deathDate");
-    let readersParam = urlParams.get("readers") || "{}";
-    let readers = JSON.parse(decodeURIComponent(readersParam));
 
-    // عرض أزرار الأجزاء
+    let accountData = accountId ? JSON.parse(localStorage.getItem(accountId) || '{}') : {};
+    if (!accountData.readers) accountData.readers = {};
+
     const quranSection = document.getElementById("quranSection");
     if (quranSection) {
       for (let i = 1; i <= 30; i++) {
@@ -297,9 +296,9 @@
         button.className = "part-button";
         button.textContent = `الجزء ${i}`;
         button.setAttribute("data-part", i);
-        if (readers[i]) {
+        if (accountData.readers[i]) {
           button.classList.add("read");
-          button.setAttribute("data-reader", `قرأه: ${readers[i]}`);
+          button.setAttribute("data-reader", `قرأه: ${accountData.readers[i]}`);
         }
         button.onclick = () => selectPart(i);
         quranSection.appendChild(button);
@@ -307,8 +306,8 @@
     }
 
     function selectPart(partNum) {
-      if (readers[partNum]) {
-        alert("هذا الجزء تم قراءته بالفعل من قبل: " + readers[partNum]);
+      if (accountData.readers[partNum]) {
+        alert("هذا الجزء تم قراءته بالفعل من قبل: " + accountData.readers[partNum]);
         return;
       }
       selectedPart = partNum;
@@ -329,8 +328,14 @@
       const readerModal = document.getElementById("readerModal");
       if (readerModal) readerModal.style.display = "none";
 
-      readers[selectedPart] = readerName;
-      updateURL();
+      accountData.readers[selectedPart] = readerName;
+      localStorage.setItem(accountId, JSON.stringify(accountData));
+
+      const button = document.querySelector(`.part-button[data-part="${selectedPart}"]`);
+      if (button) {
+        button.classList.add("read");
+        button.setAttribute("data-reader", `قرأه: ${readerName}`);
+      }
 
       const versesBox = document.getElementById("versesBox");
       const pageNavigation = document.getElementById("pageNavigation");
@@ -384,11 +389,6 @@
           nextButton.textContent = "تمت قراءة الجزء كامل...";
           nextButton.className = "complete-button";
           nextButton.onclick = () => {
-            const button = document.querySelector(`.part-button[data-part="${selectedPart}"]`);
-            if (button) {
-              button.classList.add("read");
-              button.setAttribute("data-reader", `قرأه: ${readers[selectedPart]}`);
-            }
             versesBox.style.display = "none";
             pageNavigation.style.display = "none";
           };
@@ -414,14 +414,6 @@
         currentPage--;
         displayPage();
       }
-    }
-
-    function updateURL() {
-      const urlParams = new URLSearchParams(window.location.search);
-      urlParams.set("accountId", accountId);
-      if (deathDate) urlParams.set("deathDate", deathDate);
-      urlParams.set("readers", encodeURIComponent(JSON.stringify(readers)));
-      window.history.pushState({}, document.title, `${window.location.pathname}?${urlParams.toString()}`);
     }
 
     function goBack() {
