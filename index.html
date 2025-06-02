@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>موقع الرحمة</title>
+  <title>موقع الترحم</title>
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -19,7 +19,7 @@
       min-height: 100vh;
     }
     .container {
-      max-width: 600px;
+      max-width: 500px;
       margin: 30px auto;
       background-color: #ffffff;
       padding: 40px;
@@ -53,40 +53,33 @@
       position: relative;
       z-index: 2;
     }
-    p {
-      font-size: 1.2em;
-      color: #34495e;
-      margin-bottom: 30px;
+    .form-group {
+      margin-bottom: 20px;
       position: relative;
       z-index: 2;
     }
-    .input-group {
-      margin-bottom: 20px;
+    label {
+      display: block;
+      font-size: 1.2em;
+      color: #34495e;
+      margin-bottom: 8px;
+      font-family: 'Cairo', sans-serif;
     }
     input[type="text"],
     input[type="date"] {
       width: 80%;
-      max-width: 400px;
-      padding: 12px 15px;
-      font-size: 1.1em;
-      border-radius: 12px;
+      padding: 12px;
+      font-size: 1em;
       border: 1px solid #a3bffa;
-      margin: 10px auto;
-      display: block;
+      border-radius: 8px;
       font-family: 'Amiri', serif;
-      background-color: #f9fbfd;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
       text-align: center;
-      position: relative;
-      z-index: 2;
+      transition: border-color 0.3s ease;
     }
     input[type="text"]:focus,
     input[type="date"]:focus {
       border-color: #16a085;
-      box-shadow: 0 0 8px rgba(22, 160, 133, 0.3);
       outline: none;
-      background-color: #fff;
     }
     button {
       padding: 12px 35px;
@@ -98,8 +91,6 @@
       cursor: pointer;
       font-family: 'Cairo', sans-serif;
       transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-      display: block;
-      margin: 20px auto;
       position: relative;
       z-index: 2;
     }
@@ -112,11 +103,6 @@
       transform: translateY(0);
       box-shadow: 0 2px 6px rgba(22, 160, 133, 0.2);
     }
-    .note {
-      font-size: 0.9em;
-      color: #7f8c8d;
-      margin-top: 10px;
-    }
     @media (max-width: 768px) {
       .container {
         margin: 15px;
@@ -125,14 +111,9 @@
       h1 {
         font-size: 2em;
       }
-      p {
-        font-size: 1.1em;
-      }
       input[type="text"],
       input[type="date"] {
         width: 90%;
-        max-width: 350px;
-        padding: 10px 12px;
       }
       button {
         font-size: 1em;
@@ -147,14 +128,9 @@
       h1 {
         font-size: 1.8em;
       }
-      p {
-        font-size: 1em;
-      }
       input[type="text"],
       input[type="date"] {
-        width: 95%;
-        max-width: 300px;
-        padding: 8px 10px;
+        width: 100%;
       }
       button {
         font-size: 0.9em;
@@ -167,32 +143,34 @@
   <div class="container">
     <h1>موقع الترحم</h1>
     <p>أهلاً بك، يرجى إدخال معلومات المتوفى لتبدأ الترحم والختمة</p>
-    <div class="input-group">
-      <input type="text" id="deceasedName" placeholder="أدخل اسم المتوفى الكامل" required>
-      <input type="date" id="deathDate" placeholder="تاريخ الوفاة (اختياري)">
-      <p class="note">إذا لم تعرف تاريخ الوفاة، يمكنك ترك الحقل فارغًا.</p>
-      <button onclick="submitForm()">بدء الترحم والختمة</button>
+    <div class="form-group">
+      <label for="deceasedName">اسم المتوفى</label>
+      <input type="text" id="deceasedName" placeholder="أدخل اسم المتوفى" required>
     </div>
+    <div class="form-group">
+      <label for="deathDate">تاريخ الوفاة</label>
+      <input type="date" id="deathDate">
+      <small>إذا لم تعرف تاريخ الوفاة، يمكنك ترك الحقل فارغًا.</small>
+    </div>
+    <button onclick="createAccount()">بدء الترحم والختمة</button>
   </div>
+
   <script>
-    function submitForm() {
-      const name = document.getElementById("deceasedName").value.trim();
-      const deathDate = document.getElementById("deathDate").value;
-      if (!name) {
-        alert("يرجى إدخال اسم المتوفى الكامل");
+    function createAccount() {
+      const deceasedName = document.getElementById("deceasedName").value.trim();
+      const deathDate = document.getElementById("deathDate").value || null;
+
+      if (!deceasedName) {
+        alert("يرجى إدخال اسم المتوفى!");
         return;
       }
 
-      // توليد معرف عشوائي للحساب
-      const accountId = Math.random().toString(36).substr(2, 9);
-
-      // الانتقال إلى صفحة الحساب مع تمرير البيانات
-      const params = new URLSearchParams({
-        id: accountId,
-        name: encodeURIComponent(name),
-        deathDate: deathDate || ""
-      });
-      window.location.href = `account.html?${params.toString()}`;
+      const accountId = Date.now().toString();
+      const urlParams = new URLSearchParams();
+      urlParams.append("accountId", accountId);
+      if (deathDate) urlParams.append("deathDate", deathDate);
+      const accountLink = `account.html?${urlParams.toString()}`;
+      window.location.href = accountLink;
     }
   </script>
 </body>
