@@ -166,10 +166,14 @@
       }
 
       const accountId = Date.now().toString();
-      const urlParams = new URLSearchParams();
-      urlParams.append("accountId", accountId);
-      if (deathDate) urlParams.append("deathDate", deathDate);
-      const accountLink = `account.html?${urlParams.toString()}`;
+      const accountData = {
+        name: deceasedName,
+        deathDate: deathDate,
+        readers: {} // قائمة القراء (سوف تُحدث لاحقًا)
+      };
+      localStorage.setItem(accountId, JSON.stringify(accountData));
+
+      const accountLink = `account.html?accountId=${accountId}${deathDate ? `&deathDate=${deathDate}` : ""}`;
       window.location.href = accountLink;
     }
   </script>
