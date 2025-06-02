@@ -171,19 +171,17 @@
   </div>
 
   <script>
-    // قراءة بيانات الحساب من الرابط
     const urlParams = new URLSearchParams(window.location.search);
     const accountId = urlParams.get("accountId");
     const deathDate = urlParams.get("deathDate");
 
-    // عرض معلومات المتوفى
+    const accountData = accountId ? JSON.parse(localStorage.getItem(accountId) || '{}') : {};
     const deceasedInfoElement = document.getElementById("deceasedInfo");
     if (deceasedInfoElement) {
-      const name = urlParams.get("deceasedName") || "المتوفى";
-      deceasedInfoElement.textContent = `اللهم ارحم ${name} رحمة واسعة${deathDate ? ` (توفي: ${deathDate})` : ""}`;
+      const name = accountData.name || "المتوفى";
+      deceasedInfoElement.textContent = `اللهم ارحم ${name} رحمة واسعة${deathDate || accountData.deathDate ? ` (توفي: ${deathDate || accountData.deathDate})` : ""}`;
     }
 
-    // إعداد رابط المشاركة
     const shareLinkElement = document.getElementById("shareLink");
     if (shareLinkElement && accountId) {
       shareLinkElement.value = `${window.location.origin}${window.location.pathname}?accountId=${accountId}${deathDate ? `&deathDate=${deathDate}` : ""}`;
