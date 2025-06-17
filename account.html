@@ -64,6 +64,44 @@
       position: relative;
       z-index: 2;
     }
+    .progress-info {
+      margin: 20px 0;
+      padding: 15px;
+      background-color: #f8fc8;
+      border-radius: 10px;
+      border-left: 5px solid #f39c12;
+      position: relative;
+      z-index: 2;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background-color: #ecf0f1;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(135deg, #16a085, #138d75);
+      transition: width 0.3s ease;
+      border-radius: 10px;
+    }
+    .readers-list {
+      margin: 20px 0;
+      padding: 15px;
+      background-color: #f0f8ff;
+      border-radius: 10px;
+      border-left: 5px solid #3498db;
+      text-align: right;
+    }
+    .reader-item {
+      margin: 5px 0;
+      padding: 5px;
+      background-color: #e3f2fd;
+      border-radius: 5px;
+      font-size: 0.9em;
+    }
     button {
       padding: 12px 35px;
       font-size: 1.1em;
@@ -115,6 +153,27 @@
       background: linear-gradient(135deg, #95a5a6, #7f8c8d);
       box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
     }
+    .completion-celebration {
+      display: none;
+      background: linear-gradient(135deg, #27ae60, #16a085);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      margin: 20px 0;
+      text-align: center;
+      font-size: 1.2em;
+      animation: celebrate 2s ease-in-out;
+    }
+    @keyframes celebrate {
+      0% { transform: scale(0.8); opacity: 0; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .loading {
+      display: none;
+      color: #16a085;
+      margin: 10px 0;
+    }
     @media (max-width: 768px) {
       .container {
         margin: 15px;
@@ -158,33 +217,166 @@
 <body>
   <div class="container">
     <h1>حساب الرحمة</h1>
-    <div class="deceased-info" id="deceasedInfo"></div>
+    <div class="deceased-info" id="deceasedInfo">جاري تحميل البيانات...</div>
+    
+    <div class="completion-celebration" id="completionCelebration">
+      🎉 بارك الله فيكم! تم إكمال ختمة القرآن الكريم 🎉
+      <br>جعله الله في ميزان حسنات المتوفى وجميع المشاركين
+    </div>
+    
+    <div class="progress-info" id="progressInfo">
+      <div>تقدم الختمة: <span id="progressText">0/30</span></div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+      </div>
+    </div>
+    
+    <div class="readers-list" id="readersList" style="display: none;">
+      <h3>المشاركون في الختمة:</h3>
+      <div id="readersContent"></div>
+    </div>
+    
     <button onclick="goToKhotma()">الخاتمة</button>
     <button onclick="goToDua()">الدعاء</button>
+    
     <div class="share-link">
       <input type="text" id="shareLink" readonly>
       <button onclick="copyLink()">نسخ الرابط</button>
     </div>
+    
     <div class="navigation-buttons">
       <button onclick="createNewAccount()">إنشاء حساب جديد</button>
     </div>
+    
+    <div class="loading" id="loading">جاري تحديث البيانات...</div>
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
   <script>
+    // إعداد Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDJP1v5cP7I267OOI478DEKqhAIi0xY1Is",
+      authDomain: "scorpion-cb13f.firebaseapp.com",
+      projectId: "scorpion-cb13f",
+      storageBucket: "scorpion-cb13f.firebasestorage.app",
+      messagingSenderId: "451389310486",
+      appId: "1:451389310486:web:70e13d7b7f92c2890d1737",
+      measurementId: "G-522L6NVLKW"
+    };
+
+    // تهيئة Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // قراءة بيانات الحساب من الرابط
     const urlParams = new URLSearchParams(window.location.search);
     const accountId = urlParams.get("accountId");
-    const deathDate = urlParams.get("deathDate");
+    let accountData = null;
 
-    const accountData = accountId ? JSON.parse(localStorage.getItem(accountId) || '{}') : {};
-    const deceasedInfoElement = document.getElementById("deceasedInfo");
-    if (deceasedInfoElement) {
-      const name = accountData.name || "المتوفى";
-      deceasedInfoElement.textContent = `اللهم ارحم ${name} رحمة واسعة${deathDate || accountData.deathDate ? ` (توفي: ${deathDate || accountData.deathDate})` : ""}`;
+    // تحميل بيانات الحساب عند تحميل الصفحة
+    window.addEventListener('load', function() {
+      if (!accountId) {
+        alert("لا يوجد معرف حساب. سيتم توجيهك لإنشاء حساب جديد.");
+        window.location.href = "index.html";
+        return;
+      }
+      
+      loadAccountData();
+      
+      // الاستماع للتحديثات المباشرة
+      db.collection('accounts').doc(accountId).onSnapshot((doc) => {
+        if (doc.exists) {
+          accountData = doc.data();
+          updateDisplay();
+        }
+      });
+    });
+
+    async function loadAccountData() {
+      const loading = document.getElementById("loading");
+      loading.style.display = "block";
+      
+      try {
+        const doc = await db.collection('accounts').doc(accountId).get();
+        if (doc.exists) {
+          accountData = doc.data();
+          updateDisplay();
+        } else {
+          alert("الحساب غير موجود.");
+          window.location.href = "index.html";
+        }
+      } catch (error) {
+        console.error('خطأ في تحميل البيانات:', error);
+        alert('حدث خطأ في تحميل البيانات.');
+      }
+      
+      loading.style.display = "none";
     }
 
-    const shareLinkElement = document.getElementById("shareLink");
-    if (shareLinkElement && accountId) {
-      shareLinkElement.value = `${window.location.origin}${window.location.pathname}?accountId=${accountId}${deathDate ? `&deathDate=${deathDate}` : ""}`;
+    function updateDisplay() {
+      // عرض معلومات المتوفى
+      const deceasedInfoElement = document.getElementById("deceasedInfo");
+      if (deceasedInfoElement && accountData) {
+        const deathDateText = accountData.deathDate ? ` (توفي: ${accountData.deathDate})` : "";
+        deceasedInfoElement.textContent = `اللهم ارحم ${accountData.deceasedName} رحمة واسعة${deathDateText}`;
+      }
+
+      // تحديث شريط التقدم
+      updateProgress();
+      
+      // عرض قائمة القراء
+      updateReadersList();
+      
+      // إعداد رابط المشاركة
+      const shareLinkElement = document.getElementById("shareLink");
+      if (shareLinkElement) {
+        shareLinkElement.value = `${window.location.origin}/account.html?accountId=${accountId}`;
+      }
+      
+      // التحقق من اكتمال الختمة
+      if (accountData && accountData.isCompleted) {
+        document.getElementById("completionCelebration").style.display = "block";
+      }
+    }
+
+    function updateProgress() {
+      if (!accountData) return;
+      
+      const completedCount = accountData.completedParts ? accountData.completedParts.length : 0;
+      const progressPercentage = (completedCount / 30) * 100;
+      
+      document.getElementById("progressText").textContent = `${completedCount}/30`;
+      document.getElementById("progressFill").style.width = `${progressPercentage}%`;
+    }
+
+    function updateReadersList() {
+      if (!accountData || !accountData.readers) return;
+      
+      const readersList = document.getElementById("readersList");
+      const readersContent = document.getElementById("readersContent");
+      
+      const readers = accountData.readers;
+      const readerEntries = Object.entries(readers);
+      
+      if (readerEntries.length > 0) {
+        readersList.style.display = "block";
+        readersContent.innerHTML = "";
+        
+        // ترتيب حسب رقم الجزء
+        readerEntries.sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+        
+        readerEntries.forEach(([partNum, readerName]) => {
+          const readerItem = document.createElement("div");
+          readerItem.className = "reader-item";
+          readerItem.textContent = `الجزء ${partNum}: ${readerName}`;
+          readersContent.appendChild(readerItem);
+        });
+      } else {
+        readersList.style.display = "none";
+      }
     }
 
     function copyLink() {
@@ -200,7 +392,7 @@
 
     function goToKhotma() {
       if (accountId) {
-        window.location.href = `khotma.html?accountId=${accountId}${deathDate ? `&deathDate=${deathDate}` : ""}`;
+        window.location.href = `khotma.html?accountId=${accountId}`;
       } else {
         alert("يرجى إنشاء حساب أولاً!");
       }
@@ -208,14 +400,14 @@
 
     function goToDua() {
       if (accountId) {
-        window.location.href = `dua.html?accountId=${accountId}${deathDate ? `&deathDate=${deathDate}` : ""}`;
+        window.location.href = `dua.html?accountId=${accountId}`;
       } else {
         alert("يرجى إنشاء حساب أولاً!");
       }
     }
 
     function createNewAccount() {
-      window.location.href = "index (1) (1).html";
+      window.location.href = "index.html";
     }
   </script>
 </body>
