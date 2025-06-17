@@ -103,6 +103,16 @@
       transform: translateY(0);
       box-shadow: 0 2px 6px rgba(22, 160, 133, 0.2);
     }
+    button:disabled {
+      background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+      cursor: not-allowed;
+      transform: none;
+    }
+    .loading {
+      display: none;
+      color: #16a085;
+      margin-top: 10px;
+    }
     @media (max-width: 768px) {
       .container {
         margin: 15px;
@@ -152,29 +162,102 @@
       <input type="date" id="deathDate">
       <small>إذا لم تعرف تاريخ الوفاة، يمكنك ترك الحقل فارغًا.</small>
     </div>
-    <button onclick="createAccount()">بدء الترحم والختمة</button>
+    <button onclick="createAccount()" id="createBtn">بدء الترحم والختمة</button>
+    <div class="loading" id="loading">جاري إنشاء الحساب...</div>
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
   <script>
-    function createAccount() {
+    // إعداد Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDJP1v5cP7I267OOI478DEKqhAIi0xY1Is",
+      authDomain: "scorpion-cb13f.firebaseapp.com",
+      projectId: "scorpion-cb13f",
+      storageBucket: "scorpion-cb13f.firebasestorage.app",
+      messagingSenderId: "451389310486",
+      appId: "1:451389310486:web:70e13d7b7f92c2890d1737",
+      measurementId: "G-522L6NVLKW"
+    };
+
+    // تهيئة Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // التحقق من وجود accountId في الرابط
+    window.addEventListener('load', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const accountId = urlParams.get("accountId");
+      
+      if (accountId) {
+        // إذا كان هناك accountId، انتقل مباشرة لصفحة الحساب
+        loadExistingAccount(accountId);
+      }
+    });
+
+    async function loadExistingAccount(accountId) {
+      try {
+        const doc = await db.collection('accounts').doc(accountId).get();
+        if (doc.exists) {
+          const data = doc.data();
+          window.location.href = `account.html?accountId=${accountId}`;
+        } else {
+          alert('الحساب غير موجود. يرجى إنشاء حساب جديد.');
+        }
+      } catch (error) {
+        console.error('خطأ في تحميل الحساب:', error);
+        alert('حدث خطأ في تحميل الحساب.');
+      }
+    }
+
+    async function createAccount() {
       const deceasedName = document.getElementById("deceasedName").value.trim();
       const deathDate = document.getElementById("deathDate").value || null;
+      const createBtn = document.getElementById("createBtn");
+      const loading = document.getElementById("loading");
 
       if (!deceasedName) {
         alert("يرجى إدخال اسم المتوفى!");
         return;
       }
 
-      const accountId = Date.now().toString();
-      const accountData = {
-        name: deceasedName,
-        deathDate: deathDate,
-        readers: {} // قائمة القراء (سوف تُحدث لاحقًا)
-      };
-      localStorage.setItem(accountId, JSON.stringify(accountData));
+      // تعطيل الزر وإظهار التحميل
+      createBtn.disabled = true;
+      loading.style.display = "block";
 
-      const accountLink = `account.html?accountId=${accountId}${deathDate ? `&deathDate=${deathDate}` : ""}`;
-      window.location.href = accountLink;
+      try {
+        // إنشاء ID فريد للحساب
+        const accountId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+        
+        // بيانات الحساب
+        const accountData = {
+          id: accountId,
+          deceasedName: deceasedName,
+          deathDate: deathDate,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          readers: {}, // سيحتوي على {partNumber: readerName}
+          completedParts: [], // أرقام الأجزاء المكتملة
+          totalReaders: 0, // عدد القراء
+          isCompleted: false // هل اكتملت الختمة
+        };
+
+        // حفظ البيانات في Firebase
+        await db.collection('accounts').doc(accountId).set(accountData);
+
+        // الانتقال لصفحة الحساب
+        window.location.href = `account.html?accountId=${accountId}`;
+
+      } catch (error) {
+        console.error('خطأ في إنشاء الحساب:', error);
+        alert('حدث خطأ في إنشاء الحساب. يرجى المحاولة مرة أخرى.');
+        
+        // إعادة تفعيل الزر
+        createBtn.disabled = false;
+        loading.style.display = "none";
+      }
     }
   </script>
 </body>
