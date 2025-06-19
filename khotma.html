@@ -215,44 +215,18 @@
       box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
     }
     @media (max-width: 768px) {
-      .container {
-        margin: 15px;
-        padding: 20px;
-      }
-      h1 {
-        font-size: 2em;
-      }
-      .part-button {
-        font-size: 1em;
-        padding: 7px 14px;
-        min-width: 50px;
-      }
-      .verses-box {
-        font-size: 1.3em;
-      }
-      .surah-title {
-        font-size: 1.6em;
-      }
+      .container { margin: 15px; padding: 20px; }
+      h1 { font-size: 2em; }
+      .part-button { font-size: 1em; padding: 7px 14px; min-width: 50px; }
+      .verses-box { font-size: 1.3em; }
+      .surah-title { font-size: 1.6em; }
     }
     @media (max-width: 480px) {
-      .container {
-        margin: 10px;
-        padding: 15px;
-      }
-      h1 {
-        font-size: 1.8em;
-      }
-      .part-button {
-        font-size: 0.9em;
-        padding: 6px 12px;
-        min-width: 40px;
-      }
-      .verses-box {
-        font-size: 1.2em;
-      }
-      .surah-title {
-        font-size: 1.4em;
-      }
+      .container { margin: 10px; padding: 15px; }
+      h1 { font-size: 1.8em; }
+      .part-button { font-size: 0.9em; padding: 6px 12px; min-width: 40px; }
+      .verses-box { font-size: 1.2em; }
+      .surah-title { font-size: 1.4em; }
     }
   </style>
 </head>
@@ -276,7 +250,27 @@
     </div>
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
   <script>
+    // إعدادات مشروعك من Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDJP1v5cP7I267OOI478DEKqhAIi0xY1Is",
+      authDomain: "scorpion-cb13f.firebaseapp.com",
+      projectId: "scorpion-cb13f",
+      storageBucket: "scorpion-cb13f.appspot.com",
+      messagingSenderId: "451389310486",
+      appId: "1:451389310486:web:70e13d7b7f92c2890d1737",
+      measurementId: "G-522L6NVLKW"
+    };
+
+    // تهيئة الاتصال بـ Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     let selectedPart = null;
     let allVerses = [];
     let currentPage = 0;
@@ -286,22 +280,35 @@
     const accountId = urlParams.get("accountId");
     const deathDate = urlParams.get("deathDate");
 
-    let accountData = accountId ? JSON.parse(localStorage.getItem(accountId) || '{}') : {};
-    if (!accountData.readers) accountData.readers = {};
+    // جلب بيانات الحساب
+    let accountData = { readers: {} };
+    db.collection("accounts").doc(accountId).get().then((doc) => {
+      if (doc.exists) {
+        accountData = doc.data();
+        updateButtons();
+      } else {
+        console.log("لا يوجد حساب بهذا المعرف");
+      }
+    }).catch((error) => {
+      console.error("خطأ أثناء جلب البيانات:", error.message);
+    });
 
-    const quranSection = document.getElementById("quranSection");
-    if (quranSection) {
-      for (let i = 1; i <= 30; i++) {
-        const button = document.createElement("button");
-        button.className = "part-button";
-        button.textContent = `الجزء ${i}`;
-        button.setAttribute("data-part", i);
-        if (accountData.readers[i]) {
-          button.classList.add("read");
-          button.setAttribute("data-reader", `قرأه: ${accountData.readers[i]}`);
+    function updateButtons() {
+      const quranSection = document.getElementById("quranSection");
+      if (quranSection) {
+        quranSection.innerHTML = "";
+        for (let i = 1; i <= 30; i++) {
+          const button = document.createElement("button");
+          button.className = "part-button";
+          button.textContent = `الجزء ${i}`;
+          button.setAttribute("data-part", i);
+          if (accountData.readers[i]) {
+            button.classList.add("read");
+            button.setAttribute("data-reader", `قرأه: ${accountData.readers[i]}`);
+          }
+          button.onclick = () => selectPart(i);
+          quranSection.appendChild(button);
         }
-        button.onclick = () => selectPart(i);
-        quranSection.appendChild(button);
       }
     }
 
@@ -329,34 +336,34 @@
       if (readerModal) readerModal.style.display = "none";
 
       accountData.readers[selectedPart] = readerName;
-      localStorage.setItem(accountId, JSON.stringify(accountData));
+      db.collection("accounts").doc(accountId).update({
+        readers: accountData.readers
+      }).then(() => {
+        updateButtons();
+        const versesBox = document.getElementById("versesBox");
+        const pageNavigation = document.getElementById("pageNavigation");
+        if (versesBox && pageNavigation) {
+          versesBox.style.display = "block";
+          versesBox.innerHTML = "<h3>الجزء " + selectedPart + "</h3>";
+          pageNavigation.style.display = "flex";
 
-      const button = document.querySelector(`.part-button[data-part="${selectedPart}"]`);
-      if (button) {
-        button.classList.add("read");
-        button.setAttribute("data-reader", `قرأه: ${readerName}`);
-      }
-
-      const versesBox = document.getElementById("versesBox");
-      const pageNavigation = document.getElementById("pageNavigation");
-      if (versesBox && pageNavigation) {
-        versesBox.style.display = "block";
-        versesBox.innerHTML = "<h3>الجزء " + selectedPart + "</h3>";
-        pageNavigation.style.display = "flex";
-
-        fetch(`https://api.alquran.cloud/v1/juz/${selectedPart}/ar`)
-          .then(response => response.json())
-          .then(data => {
-            allVerses = data.data.ayahs;
-            currentPage = 0;
-            displayPage();
-          })
-          .catch(error => {
-            console.error("Error fetching verses:", error);
-            versesBox.innerHTML += "حدث خطأ أثناء جلب الآيات.";
-            pageNavigation.style.display = "none";
-          });
-      }
+          fetch(`https://api.alquran.cloud/v1/juz/${selectedPart}/ar`)
+            .then(response => response.json())
+            .then(data => {
+              allVerses = data.data.ayahs;
+              currentPage = 0;
+              displayPage();
+            })
+            .catch(error => {
+              console.error("Error fetching verses:", error);
+              versesBox.innerHTML += "حدث خطأ أثناء جلب الآيات.";
+              pageNavigation.style.display = "none";
+            });
+        }
+      }).catch((error) => {
+        console.error("خطأ أثناء تحديث البيانات:", error.message);
+        alert("حدث خطأ أثناء حفظ القراءة.");
+      });
     }
 
     function displayPage() {
